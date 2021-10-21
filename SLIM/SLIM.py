@@ -4,6 +4,10 @@
 
 
 import random
+import time
+import psutil
+import os
+import csv
 
 
 def encrypt(P, K):
@@ -365,50 +369,54 @@ def test_5(key_list):
 def main():
     # KEY SET 1
     master_key_1 = bin(0b10011100111000000010001101100111011100000010110010001010010101011001001100100011)[2:]
-    master_key_2 = bin(0b10100010111000001011000101011101001110011100001110101001011100011110100000111011)[2:]
-    master_key_3 = bin(0b00011000111100011100110110010011101000111011110010000110010000100010100000011100)[2:]
     key_list_1 = key_generation(master_key_1)
-    key_list_2 = key_generation(master_key_2)
-    key_list_3 = key_generation(master_key_3)
     #K = '{0:0{1}b}'.format(random.getrandbits(80), 80)
     #P = '{0:0{1}b}'.format(random.getrandbits(32), 32)
 
-    t1_1 = test_1(key_list_1)
-    t1_2 = test_2(key_list_1)
-    t1_3 = test_3(key_list_1)
-    t1_4 = test_4(key_list_1)
-    t1_5 = test_5(key_list_1)
-    t2_1 = test_1(key_list_2)
-    t2_2 = test_2(key_list_2)
-    t2_3 = test_3(key_list_2)
-    t2_4 = test_4(key_list_2)
-    t2_5 = test_5(key_list_2)
-    t3_1 = test_1(key_list_3)
-    t3_2 = test_2(key_list_3)
-    t3_3 = test_3(key_list_3)
-    t3_4 = test_4(key_list_3)
-    t3_5 = test_5(key_list_3)
+    f = open('plaintext-32kb.txt')
+    p_str_whole = f.read()
+    cipher = ''
 
-    print("")
-    print("========================FINAL RESULT")
-    print("TEST WITH KEY SET 1")
-    print("Test 1:", t1_1)
-    print("Test 2:", t1_2)
-    print("Test 3:", t1_3)
-    print("Test 4:", t1_4)
-    print("Test 5:", t1_5)
-    print("TEST WITH KEY SET 2")
-    print("Test 1:", t2_1)
-    print("Test 2:", t2_2)
-    print("Test 3:", t2_3)
-    print("Test 4:", t2_4)
-    print("Test 5:", t2_5)
-    print("TEST WITH KEY SET 3")
-    print("Test 1:", t3_1)
-    print("Test 2:", t3_2)
-    print("Test 3:", t3_3)
-    print("Test 4:", t3_4)
-    print("Test 5:", t3_5)
+    process = psutil.Process(os.getpid())
+    memorys = []
+    start = time.time()
+
+    # Encryption
+    for i in range(4096):
+        mem = process.memory_full_info()
+        p_block = p_str_whole[8*i:8*(i+1)]
+        bin_p_block = bin(int(p_block, 16))[2:]
+        c_block = encrypt(bin_p_block, key_list_1)
+        cipher += hex(int(c_block, 2))[2:]
+        memorys.append(mem[0])
+        if i % 256 == 0:
+                print ("Current memory usage at round %s: " % i)
+                print (mem[0])
+    end = time.time()
+    print ("Total time: %s" % str(end - start))
+
+    with open('SLIM-result.csv', 'w+') as w:
+        write = csv.writer(w)
+        write.writerow(memorys)
+
+    # C = encrypt(p_str, key_list_1)
+
+    # print(C)
+
+    # t1_1 = test_1(key_list_1)
+    # t1_2 = test_2(key_list_1)
+    # t1_3 = test_3(key_list_1)
+    # t1_4 = test_4(key_list_1)
+    # t1_5 = test_5(key_list_1)
+
+    # print("")
+    # print("========================FINAL RESULT")
+    # print("TEST WITH KEY SET 1")
+    # print("Test 1:", t1_1)
+    # print("Test 2:", t1_2)
+    # print("Test 3:", t1_3)
+    # print("Test 4:", t1_4)
+    # print("Test 5:", t1_5)
 
 
 if __name__ == "__main__":

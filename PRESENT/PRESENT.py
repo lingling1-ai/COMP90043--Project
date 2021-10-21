@@ -31,11 +31,10 @@ Encrypting with a 128-bit key:
 >>> decrypted.encode('hex')
 '0123456789abcdef'
 """
-# import psutil
-import threading
 import time
 import os
 import psutil
+import csv
 
 rounds = 2048
 result = ""
@@ -221,7 +220,6 @@ if __name__ == "__main__":
             cur_plain_part = plain[16*i:16*(i+1)]
         #     print ("current plaintext block: %s" % cur_plain_part)
             cur_plain = bytes.fromhex(cur_plain_part)
-            i += 1
             encrypted = cipher.encrypt(cur_plain)
             result = result + encrypted.hex()
             memorys.append(mem[0])
@@ -231,16 +229,19 @@ if __name__ == "__main__":
                 print (mem[0])
     end = time.time()
     print ("Total time: %s" % str(end - start))
+    with open('PRESENT-result.csv', 'w+') as w:
+        write = csv.writer(w)
+        write.writerow(memorys)
 
     # Decryption
-    for i in range(rounds):
-            cur_cipher_part = result[16*i:16*(i+1)]
-        #     print ("current cipher block: %s" % cur_cipher_part)
-            cur_cipher = bytes.fromhex(cur_cipher_part)
-            i += 1
-            decrypted = cipher.decrypt(cur_cipher)
-            decrypt_result = decrypt_result + decrypted.hex()
-        #     print ("decryption result at round %s : %s" %(i, decrypt_result))
-    print (decrypt_result == plain)
+#     for i in range(rounds):
+#             cur_cipher_part = result[16*i:16*(i+1)]
+#         #     print ("current cipher block: %s" % cur_cipher_part)
+#             cur_cipher = bytes.fromhex(cur_cipher_part)
+#             i += 1
+#             decrypted = cipher.decrypt(cur_cipher)
+#             decrypt_result = decrypt_result + decrypted.hex()
+#         #     print ("decryption result at round %s : %s" %(i, decrypt_result))
+#     print (decrypt_result == plain)
 #     print (memorys)
 #     _test()
