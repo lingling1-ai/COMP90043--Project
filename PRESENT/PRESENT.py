@@ -1,7 +1,7 @@
 """ PRESENT block cipher implementation
 
 USAGE EXAMPLE:
-##### USE PYTHON 2.X FOR THIS IMPLEMENTATION #####
+##### USE PYTHON 3.X FOR THIS IMPLEMENTATION #####
 ---------------
 Importing:
 -----------
@@ -31,6 +31,15 @@ Encrypting with a 128-bit key:
 >>> decrypted.encode('hex')
 '0123456789abcdef'
 """
+# import psutil
+import threading
+import time
+import os
+import psutil
+
+rounds = 2048
+result = ""
+decrypt_result = ""
 class Present:
 
         def __init__(self,key,rounds=32):
@@ -45,7 +54,7 @@ class Present:
                 elif len(key) * 8 == 128:
                         self.roundkeys = generateRoundkeys128(string2number(key),self.rounds)
                 else:
-                        raise ValueError, "Key must be a 128-bit or 80-bit rawstring"
+                        raise ValueError("Key must be a 128-bit or 80-bit rawstring, current key size: %s, %s" % (len(key), key))
 
         def encrypt(self,block):
                 """Encrypt 1 block (8 bytes)
@@ -54,7 +63,7 @@ class Present:
                 Output: ciphertext block as raw string
                 """
                 state = string2number(block)
-                for i in xrange (self.rounds-1):
+                for i in range (self.rounds-1):
                         state = addRoundKey(state,self.roundkeys[i])
                         state = sBoxLayer(state)
                         state = pLayer(state)
@@ -68,7 +77,7 @@ class Present:
                 Output: plaintext block as raw string
                 """
                 state = string2number(block)
-                for i in xrange (self.rounds-1):
+                for i in range (self.rounds-1):
                         state = addRoundKey(state,self.roundkeys[-i-1])
                         state = pLayer_dec(state)
                         state = sBoxLayer_dec(state)
@@ -80,12 +89,12 @@ class Present:
 
 #        0   1   2   3   4   5   6   7   8   9   a   b   c   d   e   f
 Sbox= [0xc,0x5,0x6,0xb,0x9,0x0,0xa,0xd,0x3,0xe,0xf,0x8,0x4,0x7,0x1,0x2]
-Sbox_inv = [Sbox.index(x) for x in xrange(16)]
+Sbox_inv = [Sbox.index(x) for x in range(16)]
 PBox = [0,16,32,48,1,17,33,49,2,18,34,50,3,19,35,51,
         4,20,36,52,5,21,37,53,6,22,38,54,7,23,39,55,
         8,24,40,56,9,25,41,57,10,26,42,58,11,27,43,59,
         12,28,44,60,13,29,45,61,14,30,46,62,15,31,47,63]
-PBox_inv = [PBox.index(x) for x in xrange(64)]
+PBox_inv = [PBox.index(x) for x in range(64)]
 
 def generateRoundkeys80(key,rounds):
         """Generate the roundkeys for a 80-bit key
@@ -95,7 +104,7 @@ def generateRoundkeys80(key,rounds):
                 rounds: the number of rounds as an integer
         Output: list of 64-bit roundkeys as integers"""
         roundkeys = []
-        for i in xrange(1,rounds+1): # (K1 ... K32)
+        for i in range(1,rounds+1): # (K1 ... K32)
                 # rawkey: used in comments to show what happens at bitlevel
                 # rawKey[0:64]
                 roundkeys.append(key >>16)
@@ -118,7 +127,7 @@ def generateRoundkeys128(key,rounds):
                 rounds: the number of rounds as an integer
         Output: list of 64-bit roundkeys as integers"""
         roundkeys = []
-        for i in xrange(1,rounds+1): # (K1 ... K32)
+        for i in range(1,rounds+1): # (K1 ... K32)
                 # rawkey: used in comments to show what happens at bitlevel
                 roundkeys.append(key >>64)
                 #1. Shift
@@ -140,7 +149,7 @@ def sBoxLayer(state):
         Output: 64-bit integer"""
 
         output = 0
-        for i in xrange(16):
+        for i in range(16):
                 output += Sbox[( state >> (i*4)) & 0xF] << (i*4)
         return output
 
@@ -150,7 +159,7 @@ def sBoxLayer_dec(state):
         Input:  64-bit integer
         Output: 64-bit integer"""
         output = 0
-        for i in xrange(16):
+        for i in range(16):
                 output += Sbox_inv[( state >> (i*4)) & 0xF] << (i*4)
         return output
 
@@ -160,7 +169,7 @@ def pLayer(state):
         Input:  64-bit integer
         Output: 64-bit integer"""
         output = 0
-        for i in xrange(64):
+        for i in range(64):
                 output += ((state >> i) & 0x01) << PBox[i]
         return output
 
@@ -170,7 +179,7 @@ def pLayer_dec(state):
         Input:  64-bit integer
         Output: 64-bit integer"""
         output = 0
-        for i in xrange(64):
+        for i in range(64):
                 output += ((state >> i) & 0x01) << PBox_inv[i]
         return output
 
@@ -180,7 +189,7 @@ def string2number(i):
     Input: string (big-endian)
     Output: long or integer
     """
-    return int(i.encode('hex'),16)
+    return int(i.hex(),16)
 
 def number2string_N(i, N):
     """Convert a number to a string of fixed size
@@ -190,18 +199,48 @@ def number2string_N(i, N):
     Output: string (big-endian)
     """
     s = '%0*x' % (N*2, i)
-    return s.decode('hex')
+    return bytes.fromhex(s)
 
 def _test():
     import doctest
     doctest.testmod()
 
 if __name__ == "__main__":
-    # key = "0123456789abcdef0123456789abcdef".decode('hex')
-    # plain = "0123456789abcdef".decode('hex')
-    # cipher = Present(key)
-    # encrypted = cipher.encrypt(plain)
-    # print encrypted.encode('hex')
-    # decrypted = cipher.decrypt(encrypted)
-    # print decrypted.encode('hex')
-    _test()
+    f = open('plaintext-32kb.txt')
+    key = bytes.fromhex("0123456789abcdef0123")
+    plain = f.read()
+#     print(plain)
+    cipher = Present(key)
+
+    process = psutil.Process(os.getpid())
+    memorys = []
+    start = time.time()
+
+    for i in range(rounds):
+            mem = process.memory_full_info()
+            cur_plain_part = plain[16*i:16*(i+1)]
+        #     print ("current plaintext block: %s" % cur_plain_part)
+            cur_plain = bytes.fromhex(cur_plain_part)
+            i += 1
+            encrypted = cipher.encrypt(cur_plain)
+            result = result + encrypted.hex()
+            memorys.append(mem[0])
+            if i % 256 == 0:
+                # print ("result at round %s : %s" %(i, result))
+                print ("Current memory usage at round %s: " % i)
+                print (mem[0])
+    end = time.time()
+    print ("Total time: %s" % str(end - start))
+
+    # Decryption
+    for i in range(rounds):
+            cur_cipher_part = result[16*i:16*(i+1)]
+        #     print ("current cipher block: %s" % cur_cipher_part)
+            cur_cipher = bytes.fromhex(cur_cipher_part)
+            i += 1
+            decrypted = cipher.decrypt(cur_cipher)
+            decrypt_result = decrypt_result + decrypted.hex()
+        #     print ("decryption result at round %s : %s" %(i, decrypt_result))
+    print (decrypt_result == plain)
+#     print (memorys)
+#     _test()
