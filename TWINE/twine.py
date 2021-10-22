@@ -1,8 +1,12 @@
 import random
 import string
 import binascii
+import os
+import psutil
+import time
+import csv
 from math import ceil
-from .algo import _key_schedule_80, _key_schedule_128, _encrypt, _decrypt
+from algo import _key_schedule_80, _key_schedule_128, _encrypt, _decrypt
 
 
 class Twine:
@@ -18,7 +22,7 @@ class Twine:
             key_size = int(key_size, 0)
         if key_size not in [0x50, 0x80]:
             raise ValueError(
-                f"the given key bit length of: {key_size} is not supported"
+                "the given key bit length of: %s is not supported" % key_size
             )
 
         if not key:
@@ -27,7 +31,7 @@ class Twine:
         if self.__is_key_valid(key):
             self.key = key
         else:
-            raise ValueError(f"The given key: {key} is not valid")
+            raise ValueError("The given key: %s is not valid" % self.key)
 
     @property
     def key_size(self):
@@ -61,12 +65,15 @@ class Twine:
 
     def encrypt(self, plaintext):
         _c = ""
+        memorys = []
+        process = psutil.Process(os.getpid())
         plaintext = plaintext.encode("utf-8").hex()
         RK = self.__generate_RK()
         for block in self.__iterblocks(plaintext):
+            memorys.append(process.memory_full_info()[0])
             cblock = hex(_encrypt(int(block, 16), RK))[2:]
             _c += cblock
-        return _c
+        return _c, memorys
 
     def decrypt(self, ciphertext):
         _t = ""
@@ -80,4 +87,28 @@ class Twine:
 
 if __name__ == '__main__':
     twine = Twine()
-    print(twine.encrypt)
+    process = psutil.Process(os.getpid())
+    f = open('plaintext-32kb.txt')
+    p_str_whole = f.read()
+    # start_memory = process.memory_full_info()[0]
+
+    cipher, memorys = twine.encrypt(p_str_whole)
+
+    with open('TWINE-result.csv', 'w+') as w:
+        write = csv.writer(w)
+        write.writerow(memorys)
+
+    # end_memory = process.memory_full_info()[0]
+
+    # for _ in range(10):
+    #     start = time.time()
+    #     twine.encrypt(p_str_whole)
+    #     end = time.time()
+    #     print(end - start)
+    #     times.append(end - start)
+    
+    # with open('TWINE-times.csv', 'w+') as w:
+    #     write = csv.writer(w)
+    #     write.writerow(times)
+
+    
