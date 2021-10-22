@@ -379,25 +379,28 @@ def main():
 
     process = psutil.Process(os.getpid())
     memorys = []
-    start = time.time()
+    times = []
 
     # Encryption
-    for i in range(4096):
-        mem = process.memory_full_info()
-        p_block = p_str_whole[8*i:8*(i+1)]
-        bin_p_block = bin(int(p_block, 16))[2:]
-        c_block = encrypt(bin_p_block, key_list_1)
-        cipher += hex(int(c_block, 2))[2:]
-        memorys.append(mem[0])
-        if i % 256 == 0:
-                print ("Current memory usage at round %s: " % i)
-                print (mem[0])
-    end = time.time()
-    print ("Total time: %s" % str(end - start))
+    for _ in range(10):
+        start = time.time()
+        for i in range(4096):
+            mem = process.memory_full_info()
+            p_block = p_str_whole[8*i:8*(i+1)]
+            bin_p_block = bin(int(p_block, 16))[2:]
+            c_block = encrypt(bin_p_block, key_list_1)
+            cipher += hex(int(c_block, 2))[2:]
+            memorys.append(mem[0])
+            # if i % 256 == 0:
+            #         print ("Current memory usage at round %s: " % i)
+            #         print (mem[0])
+        end = time.time()
+        times.append(end - start)
+        print ("Total time: %s" % str(end - start))
 
-    with open('SLIM-result.csv', 'w+') as w:
+    with open('SLIM-times.csv', 'w+') as w:
         write = csv.writer(w)
-        write.writerow(memorys)
+        write.writerow(times)
 
     # C = encrypt(p_str, key_list_1)
 

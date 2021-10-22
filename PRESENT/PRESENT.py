@@ -213,25 +213,31 @@ if __name__ == "__main__":
 
     process = psutil.Process(os.getpid())
     memorys = []
-    start = time.time()
+    times = []
 
-    for i in range(rounds):
-            mem = process.memory_full_info()
-            cur_plain_part = plain[16*i:16*(i+1)]
-        #     print ("current plaintext block: %s" % cur_plain_part)
-            cur_plain = bytes.fromhex(cur_plain_part)
-            encrypted = cipher.encrypt(cur_plain)
-            result = result + encrypted.hex()
-            memorys.append(mem[0])
-            if i % 256 == 0:
-                # print ("result at round %s : %s" %(i, result))
-                print ("Current memory usage at round %s: " % i)
-                print (mem[0])
-    end = time.time()
-    print ("Total time: %s" % str(end - start))
-    with open('PRESENT-result.csv', 'w+') as w:
+    for j in range(10):
+        start = time.time()
+        for i in range(rounds):
+                mem = process.memory_full_info()
+                cur_plain_part = plain[16*i:16*(i+1)]
+                #     print ("current plaintext block: %s" % cur_plain_part)
+                cur_plain = bytes.fromhex(cur_plain_part)
+                encrypted = cipher.encrypt(cur_plain)
+                result = result + encrypted.hex()
+                memorys.append(mem[0])
+                if i % 256 == 0:
+                        # print ("result at round %s : %s" %(i, result))
+                        print ("Current memory usage at round %s: " % i)
+                        print (mem[0])
+        end = time.time()
+        times.append(end - start)
+        # print ("Total time: %s" % str(end - start))
+        # with open('PRESENT-result.csv', 'w+') as w:
+        #         write = csv.writer(w)
+        #         write.writerow(memorys)
+    with open('PRESENT-times.csv', 'w+') as w:
         write = csv.writer(w)
-        write.writerow(memorys)
+        write.writerow(times)
 
     # Decryption
 #     for i in range(rounds):
